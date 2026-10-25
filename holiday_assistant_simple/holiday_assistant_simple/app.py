@@ -25,8 +25,20 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
+def get_setting(name: str, default: str = "") -> str:
+    """Read Streamlit Cloud Secrets first, then fall back to local environment/.env."""
+    try:
+        value = st.secrets.get(name, None)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    except Exception:
+        # Locally, st.secrets may not exist; os.getenv will read values loaded by dotenv.
+        pass
+    return os.getenv(name, default).strip()
+
+
+API_KEY = get_setting("GEMINI_API_KEY")
+MODEL_NAME = get_setting("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 
 @st.cache_resource(show_spinner=False)
@@ -42,7 +54,7 @@ def create_client(api_key: str):
 
 def ask_gemini(prompt: str, max_tokens: int = 550) -> Tuple[Optional[str], Optional[str]]:
     if not API_KEY:
-        return None, "Gemini API key not found. Add GEMINI_API_KEY to your .env file, or use Sample Demo."
+        return None, "Gemini API key not found. Locally, add GEMINI_API_KEY to .env. On Streamlit Cloud, add it under Manage app → Settings → Secrets. You can also use Sample Demo."
 
     try:
         client = create_client(API_KEY)
